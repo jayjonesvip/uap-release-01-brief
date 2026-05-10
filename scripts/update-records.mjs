@@ -260,9 +260,10 @@ for (const url of links) {
       const localPath = getMediaPath(record.url);
       const downloaded = await downloadFile(record.url, localPath);
 
-      if (downloaded) {
-        record.localPath = downloaded.replaceAll("\\", "/");
-      }
+   if (downloaded) {
+      record.localPath = downloaded.replaceAll("\\", "/");
+      console.log(`Downloaded: ${record.localPath}`);
+    }
     }
 
     recordsMap.set(record.url, record);
@@ -284,6 +285,10 @@ for (const url of links) {
     records
   };
 
+  console.log(`Found ${links.length} links`);
+  console.log(`Built ${records.length} records`);
+  console.log(`Media-backed records: ${records.filter(r => r.localPath).length}`);
+  
   await fs.mkdir(path.dirname(OUT_FILE), { recursive: true });
   await fs.writeFile(OUT_FILE, JSON.stringify(payload, null, 2) + "\n", "utf8");
 

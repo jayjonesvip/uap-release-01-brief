@@ -15,6 +15,7 @@ The page ranks released records by "official weight," using factors such as agen
 - Responsive layout for desktop and mobile
 - Print-friendly styling
 
+
 ## Purpose
 
 This project is meant to make the Release 01 material easier to scan, compare, and revisit.

@@ -28,6 +28,53 @@ const EXTRA_VIDEO_RECORDS = [
   }
 ];
 
+
+
+
+async function downloadFile(url, outputPath) {
+  try {
+    await fs.mkdir(path.dirname(outputPath), { recursive: true });
+
+    const existing = await fs.stat(outputPath).catch(() => null);
+    if (existing && existing.size > 0) {
+      return outputPath;
+    }
+
+    const response = await fetch(url);
+
+    if (!response.ok) {
+      throw new Error(`Failed to download ${url}: HTTP ${response.status}`);
+    }
+
+    const buffer = Buffer.from(await response.arrayBuffer());
+    await fs.writeFile(outputPath, buffer);
+
+    return outputPath;
+  } catch (err) {
+    console.warn(`Skipping download: ${url}`);
+    console.warn(err.message);
+    return null;
+  }
+}
+
+function getMediaPath(url) {
+  const fileName = decodeURIComponent(url.split("/").pop().split("?")[0]);
+
+  if (fileName.match(/\.pdf$/i)) {
+    return path.join("media", "pdf", fileName);
+  }
+
+  if (fileName.match(/\.(png|jpg|jpeg)$/i)) {
+    return path.join("media", "images", fileName);
+  }
+
+  if (fileName.match(/\.(mp4|mov|webm)$/i)) {
+    return path.join("media", "videos", fileName);
+  }
+
+  return path.join("media", "other", fileName);
+}
+
 function cleanTitleFromUrl(url) {
   const file = decodeURIComponent(url.split("/").pop() || "");
   const base = file.replace(/\.(pdf|png|jpg|jpeg|mp4|mov)$/i, "");
@@ -193,32 +240,42 @@ async function main() {
   const links = Array.from(new Set([...pagedLinks, ...finalLinks]));
   const recordsMap = new Map();
 
-  for (const url of links) {
-    if (/\.(pdf|png|jpg|jpeg|mp4|mov)(\?|$)/i.test(url) || /dvidshub\.net\/video\//i.test(url)) {
-      const record = /dvidshub\.net\/video\//i.test(url)
-        ? {
-            title: cleanTitleFromUrl(url),
-            url,
-            agency: "Department of War / AARO",
-            year: "N/A",
-            type: "Video",
-            location: "N/A",
-            rating: 3,
-            highlight: "Official DVIDS/WAR.gov-linked video record."
-          }
-        : inferRecord(url);
+for (const url of links) {
+  if (/\.(pdf|png|jpg|jpeg|mp4|mov)(\?|$)/i.test(url) || /dvidshub\.net\/video\//i.test(url)) {
+    const record = /dvidshub\.net\/video\//i.test(url)
+      ? {
+          title: cleanTitleFromUrl(url),
+          url,
+          agency: "Department of War / AARO",
+          year: "N/A",
+          type: "Video",
+          location: "N/A",
+          rating: 3,
+          highlight: "Official DVIDS/WAR.gov-linked video record."
+        }
+      : inferRecord(url);
 
-      recordsMap.set(record.url, record);
+    // Download PDFs and images only. Keep videos as links.
+    if (record.url.match(/\.(pdf|png|jpg|jpeg)(\?|$)/i)) {
+      const localPath = getMediaPath(record.url);
+      const downloaded = await downloadFile(record.url, localPath);
+
+      if (downloaded) {
+        record.localPath = downloaded.replaceAll("\\", "/");
+      }
     }
-  }
 
+    recordsMap.set(record.url, record);
+  }
+}
+
+  
   for (const r of EXTRA_VIDEO_RECORDS) {
     recordsMap.set(r.url, r);
   }
 
   const records = Array.from(recordsMap.values())
     .sort((a, b) => b.rating - a.rating || a.agency.localeCompare(b.agency) || a.title.localeCompare(b.title));
-
   const payload = {
     generatedAt: new Date().toISOString(),
     sourceUrl: SOURCE_URL,
@@ -228,7 +285,7 @@ async function main() {
   };
 
   await fs.mkdir(path.dirname(OUT_FILE), { recursive: true });
-  await fs.writeFile(OUT_FILE, JSON.stringify(payload, null, 2) + "\\n", "utf8");
+  await fs.writeFile(OUT_FILE, JSON.stringify(payload, null, 2) + "\n", "utf8");
 
   console.log(`Wrote ${records.length} records to ${OUT_FILE}`);
 }

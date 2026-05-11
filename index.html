@@ -157,6 +157,10 @@
       return [r.title,r.agency,r.year,r.type,r.location,r.highlight].join(" ").toLowerCase();
     }
 
+    function getPrimaryUrl(record) {
+      return record.localPath || record.url;
+    }
+    
     function renderTop() {
       topCards.innerHTML = topRecords.map(r => `
         <article class="card">
@@ -168,7 +172,10 @@
             <span class="pill">${esc(r.location)}</span>
           </div>
           <p class="small">${esc(r.highlight)}</p>
-          <a class="file-link" href="${esc(r.url)}" target="_blank" rel="noopener noreferrer">Open source file</a>
+          <a class="file-link" href="${esc(getPrimaryUrl(r))}" target="_blank" rel="noopener noreferrer">
+            ${r.localPath ? "Open local image" : "Open source file"}
+          </a>
+            ${r.localPath ? `<a class="file-link" href="${esc(r.url)}" target="_blank" rel="noopener noreferrer">Original source</a>` : ""}
         </article>
       `).join("");
     }
@@ -182,7 +189,12 @@
           <td>${esc(r.year)}</td>
           <td>${esc(r.location)}</td>
           <td>${esc(r.type)}</td>
-          <td><a class="file-link" href="${esc(r.url)}" target="_blank" rel="noopener noreferrer">Open</a></td>
+          <td>
+            <a class="file-link" href="${esc(getPrimaryUrl(r))}" target="_blank" rel="noopener noreferrer">
+              ${r.localPath ? "Local" : "Open"}
+            </a>
+            ${r.localPath ? `<br><a class="file-link" href="${esc(r.url)}" target="_blank" rel="noopener noreferrer">Original</a>` : ""}
+          </td>
         </tr>
       `).join("");
       $("visibleCount").textContent = list.length;

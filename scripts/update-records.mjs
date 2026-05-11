@@ -361,12 +361,21 @@ async function main() {
     }
   }
 
-  for (const record of EXTRA_VIDEO_RECORDS) {
-    recordsMap.set(record.url, {
-      ...recordsMap.get(record.url),
-      ...record
-    });
+  for (const record of recordsMap.values()) {
+  if (!record.url) continue;
+
+  // Download PDFs and images only. Keep videos as links.
+  if (record.url.match(/\.(pdf|png|jpg|jpeg)(\?|$)/i)) {
+    const localPath = getMediaPath(record.url);
+    const downloaded = await downloadFile(record.url, localPath);
+
+    if (downloaded) {
+      record.localPath = downloaded.replaceAll("\\", "/");
+      console.log(`Downloaded: ${record.localPath}`);
+    }
   }
+}
+  
 
   const records = Array.from(recordsMap.values()).sort(
     (a, b) =>

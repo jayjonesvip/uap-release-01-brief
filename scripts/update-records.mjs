@@ -1,4 +1,4 @@
-import fs from "node:fs/promises";
+0import fs from "node:fs/promises";
 import path from "node:path";
 import { chromium } from "playwright";
 
@@ -255,7 +255,7 @@ for (const url of links) {
         }
       : inferRecord(url);
 
-    // Download PDFs and images only. Keep videos as links.
+    // Download PDFs and images
     if (record.url.match(/\.(pdf|png|jpg|jpeg)(\?|$)/i)) {
       const localPath = getMediaPath(record.url);
       const downloaded = await downloadFile(record.url, localPath);
